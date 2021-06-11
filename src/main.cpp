@@ -11,5 +11,5 @@ void setup() {
 }
 
 void loop() {
-    pDobson->move();
+    pDobson->update();
 }
