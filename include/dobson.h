@@ -3,33 +3,15 @@
 
 
 #define ENABLE 5
-#ifdef A4988
-    
-    #define AZI_STEP 16
-    #define AZI_DIR 2                                                                                                                                                                                                                                            
-    #define AZI_M0 12
-    #define AZI_M1 13
-    #define AZI_M2 14
+#define UART_RX 16
+#define UART_TX 17
+#define UART Serial2
 
-    #define ELE_STEP 17
-    #define ELE_DIR 4
-    #define ELE_M0 5
-    #define ELE_M1 18
-    #define ELE_M2 19
+#define AZI_ADDR 0b00
+#define AZI_STEP 18
 
-#endif
-
-#ifdef TMC2209
-    #define UART_RX 16
-    #define UART_TX 17
-    #define UART Serial2
-
-    #define AZI_ADDR 0b00
-    #define AZI_STEP 18
-
-    #define ELE_ADDR 0b01
-    #define ELE_STEP 19
-#endif
+#define ELE_ADDR 0b01
+#define ELE_STEP 19
 
 
 
@@ -42,7 +24,7 @@
 
 class Dobson {
     private:
-        //Stepper* pAzimuth = NULL;
+        Stepper* pAzimuth = NULL;
         Stepper* pElevation = NULL;
         BtServer* pBTServer = NULL;
         BtService* pBTService = NULL;
@@ -50,7 +32,7 @@ class Dobson {
 
         bool _state = false;
         bool _kill = false;
-        int _delayMicros = 750;
+        int _delayMicros = 50;
         unsigned long _lastUpdateTime; 
         char txBuffer[20];        
 

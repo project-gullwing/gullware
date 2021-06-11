@@ -1,13 +1,14 @@
-#include "dobson.h"
 #include <Arduino.h>
 #include <functional>
+#include "dobson.h"
+#include "driver_tmc2209.h"
 
 
 
 void refreshSpeed(void* pDobson) {
   for(;;) {
-    ((Dobson*)pDobson)->update();
-    delay(10);
+    ((Dobson*)pDobson)->move();
+    delay(5);
   }
 }
 
@@ -18,16 +19,9 @@ Dobson::Dobson() {
 
     pBTServer = new BtServer("DOBastl");
 
-    #ifdef A4988
-        pAzimuth = new Stepper(new DriverA4988("AZI", AZI_STEP, AZI_DIR, AZI_M0, AZI_M1, AZI_M2), 150.0);
-        pElevation = new Stepper(new DriverA4988("ELE", ALT_STEP, ALT_DIR, ALT_M0, ALT_M1, ALT_M2), 150.0);
-    #endif
-
-    #ifdef TMC2209
-        UART.begin(115200, SERIAL_8N1, UART_RX, UART_TX);
-        //pAzimuth = new Stepper(new DriverTMC2209("AZI", AZI_STEP, &UART, AZI_ADDR), 150.0);
-        pElevation = new Stepper(new DriverTMC2209("ELE", ELE_STEP, &UART, ELE_ADDR), 5.0);
-    #endif
+    UART.begin(115200, SERIAL_8N1, UART_RX, UART_TX);
+    pAzimuth = new Stepper(new DriverTMC2209("AZI", AZI_STEP, &UART, AZI_ADDR));
+    pElevation = new Stepper(new DriverTMC2209("ELE", ELE_STEP, &UART, ELE_ADDR));
 
     pBTService = pBTServer->addService(SERVICE_UUID);
     pTxCharacteristic = pBTService->addTxCharacteristic(CHARACTERISTIC_UUID_TX);
@@ -56,13 +50,11 @@ Dobson::Dobson() {
 
 
 void Dobson::update() {
-    //pAzimuth->update();
-    pElevation->update();
     if (pBTServer->connected) {
         unsigned int now = micros();
         if ((now - _lastUpdateTime) > 50000) {
             _lastUpdateTime = now;
-            double dx = 0.0;//pAzimuth->getSpeedDegSec();
+            double dx = pAzimuth->getSpeedDegSec();
             double dy = pElevation->getSpeedDegSec();
 
             double speedDegSec = sqrt(dx*dx + dy*dy);
@@ -89,7 +81,7 @@ void Dobson::update() {
 
 
 void Dobson::move() { 
-    //pAzimuth->move();
+    pAzimuth->move();
     pElevation->move(); 
 }
 
@@ -99,19 +91,19 @@ void Dobson::executeMove(double angle, double speed) {
     double dx = cos(angleRad) * speed;
     double dy = sin(angleRad) * speed;
     Serial.printf("\nDOB:CMD| MOVE Angle: %.2f rads  Dx: %.2f°/s  Dy: %.2f°/s\n", angleRad, dx, dy);
-    //pAzimuth->setSpeedDegSec(dx);
+    pAzimuth->setSpeedDegSec(dx);
     pElevation->setSpeedDegSec(dy);
 }
 
 void Dobson::executeIdle() {
     Serial.println("\nDOB:CMD| IDLE");
-    //pAzimuth->setSpeedDegSec(0);
+    pAzimuth->setSpeedDegSec(0);
     pElevation->setSpeedDegSec(0);
 }
 
 void Dobson::executeHardStop() {
     Serial.println("\nDOB:CMD| HARD_STOP");
     digitalWrite(ENABLE, HIGH);
-    //pAzimuth->emergencyStop();
-    pElevation->emergencyStop();
+    pAzimuth->stop(true);
+    pElevation->stop(true);
 }
